@@ -14,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v2
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+	"sigs.k8s.io/play-kubebuilder/api/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -27,17 +31,14 @@ import (
 type CaptainSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	//Template corev1.PodTemplateSpec `json:"template"`
 	// +optional
-	NextStop int `json:"nextStop,omitempty"`
+	NextRun int `json:"nextRun,omitempty"`
 }
 
 // CaptainStatus defines the observed state of Captain
 type CaptainStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	// +optional
-	//LastRun metav1.Time `json:"lastRun,omitempty"`
 	LastRun int `json:"lastRun,omitempty"`
 }
 
@@ -61,7 +62,29 @@ type CaptainList struct {
 	Items           []Captain `json:"items"`
 }
 
-func (cap *Captain) Hub() {}
+func (ej *Captain) ConvertTo(dst conversion.Hub) error {
+	switch t := dst.(type) {
+	case *v1.Captain:
+		jobv1 := dst.(*v1.Captain)
+		jobv1.ObjectMeta = ej.ObjectMeta
+		jobv1.Spec.NextStop = ej.Spec.NextRun
+		return nil
+	default:
+		return fmt.Errorf("unsupported type %v", t)
+	}
+}
+
+func (ej *Captain) ConvertFrom(src conversion.Hub) error {
+	switch t := src.(type) {
+	case *v1.Captain:
+		jobv1 := src.(*v1.Captain)
+		ej.ObjectMeta = jobv1.ObjectMeta
+		ej.Spec.NextRun = jobv1.Spec.NextStop
+		return nil
+	default:
+		return fmt.Errorf("unsupported type %v", t)
+	}
+}
 
 func init() {
 	SchemeBuilder.Register(&Captain{}, &CaptainList{})
